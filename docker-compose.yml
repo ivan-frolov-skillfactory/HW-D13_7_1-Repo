@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./MMO_RPG
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./MMO_RPG:/usr/src/app/
+    ports:
+      - 1337:8000
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-re!pd8td-usz#_f!$$&x6a(8g$$#d$$m^e3vw=7&azp*vp42v=!u@
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  celery:
+    build: ./MMO_RPG
+    command: celery --app=MMORPG_board worker --loglevel=info --logfile=logs/celery.log
+    volumes:
+      - ./MMO_RPG:/usr/src/app
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-re!pd8td-usz#_f!$$&x6a(8g$$#d$$^e3vw=7&azp*vp42v=!u@
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - web
+      - redis
+
+  redis:
+    image: redis:7-alpine
+
+  dashboard:
+    build: ./MMO_RPG
+    command: celery flower -A MMORPG_board --port=5555 --broker=redis://redis:6379/0
+    ports:
+      - 5555:5555
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-re!pd8td-usz#_f!$$&x6a(8g$$#d$$^e3vw=7&azp*vp42v=!u@
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - web
+      - redis
+      - celery
